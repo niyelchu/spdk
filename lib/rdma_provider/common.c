@@ -4,7 +4,9 @@
  *   Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  */
 
-#include <rdma/rdma_cma.h>
+//#include <rdma/rdma_cma.h>
+#include <mana/rdma_cma.h>
+#include <mana/Verbs.h>
 
 #include "spdk/log.h"
 #include "spdk/string.h"

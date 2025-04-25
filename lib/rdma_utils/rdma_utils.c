@@ -13,8 +13,9 @@
 
 #include "spdk_internal/assert.h"
 
-#include <rdma/rdma_cma.h>
-#include <rdma/rdma_verbs.h>
+//#include <rdma/rdma_cma.h>
+#include <mana/rdma_cma.h>
+//#include <rdma/rdma_verbs.h>
 
 struct rdma_utils_device {
 	struct ibv_pd			*pd;

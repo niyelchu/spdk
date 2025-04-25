@@ -162,7 +162,8 @@ COMMON_CFLAGS += -I/usr/local/include
 endif
 
 ifeq ($(CONFIG_RDMA),y)
-SYS_LIBS += -libverbs -lrdmacm
+#SYS_LIBS += -libverbs -lrdmacm
+SYS_LIBS += -lconsumer
 endif
 
 ifeq ($(CONFIG_URING),y)

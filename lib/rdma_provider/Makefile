@@ -21,11 +21,15 @@ C_SRCS += rdma_provider_verbs.c
 else ifeq ($(CONFIG_RDMA_PROV),mlx5_dv)
 C_SRCS += rdma_provider_mlx5_dv.c
 LOCAL_SYS_LIBS += -lmlx5
+else ifeq ($(CONFIG_RDMA_PROV),mana)
+C_SRCS += rdma_provider_verbs.c
+LOCAL_SYS_LIBS += -lconsumer
 else
 $(error Wrong RDMA provider specified: $(CONFIG_RDMA_PROV))
 endif
 
-LOCAL_SYS_LIBS += -libverbs -lrdmacm
+#LOCAL_SYS_LIBS += -libverbs -lrdmacm
+LOCAL_SYS_LIBS += -lconsumer
 #Attach only if FreeBSD and RDMA is specified with configure
 ifeq ($(OS),FreeBSD)
 # Mellanox - MLX4 HBA Userspace Library

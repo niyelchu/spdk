@@ -12,7 +12,8 @@ extern "C" {
 /* Contains hooks definition */
 #include "spdk/nvme.h"
 
-#include <infiniband/verbs.h>
+//#include <infiniband/verbs.h>
+#include <mana/Verbs.h>
 
 union spdk_rdma_utils_mr {
 	struct ibv_mr	*mr;

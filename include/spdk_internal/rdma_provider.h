@@ -6,9 +6,11 @@
 #ifndef SPDK_RDMA_H
 #define SPDK_RDMA_H
 
-#include <infiniband/verbs.h>
-#include <rdma/rdma_cma.h>
-#include <rdma/rdma_verbs.h>
+//#include <infiniband/verbs.h>
+//#include <rdma/rdma_cma.h>
+#include <mana/Verbs.h>
+#include <mana/rdma_cma.h>
+//#include <rdma/rdma_verbs.h>
 #include "spdk/dma.h"
 
 /* rxe driver vendor_id has been changed from 0 to 0XFFFFFF in 0184afd15a141d7ce24c32c0d86a1e3ba6bc0eb3 */

@@ -2363,6 +2363,7 @@ nvme_rdma_ctrlr_construct(const struct spdk_nvme_transport_id *trid,
 	struct ibv_context **contexts;
 	struct ibv_device_attr dev_attr;
 	int i, flag, rc;
+	int num_devices;
 
 	rctrlr = spdk_zmalloc(sizeof(struct nvme_rdma_ctrlr), 0, NULL, SPDK_ENV_NUMA_ID_ANY,
 			      SPDK_MALLOC_DMA);
@@ -2386,7 +2387,7 @@ nvme_rdma_ctrlr_construct(const struct spdk_nvme_transport_id *trid,
 		rctrlr->ctrlr.opts.transport_ack_timeout = NVME_RDMA_CTRLR_MAX_TRANSPORT_ACK_TIMEOUT;
 	}
 
-	contexts = rdma_get_devices(NULL);
+	contexts = rdma_get_devices(&num_devices);
 	if (contexts == NULL) {
 		SPDK_ERRLOG("rdma_get_devices() failed: %s (%d)\n", spdk_strerror(errno), errno);
 		spdk_free(rctrlr);

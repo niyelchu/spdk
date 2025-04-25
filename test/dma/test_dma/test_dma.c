@@ -13,7 +13,8 @@
 #include "spdk/util.h"
 #include "spdk/md5.h"
 
-#include <infiniband/verbs.h>
+//#include <infiniband/verbs.h>
+#include <mana/Verbs.h>
 
 struct dma_test_task;
 
