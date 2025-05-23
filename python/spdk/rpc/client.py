@@ -51,7 +51,8 @@ class JSONRPCClient(object):
         self.log_set_level(kwargs.get('log_level', logging.ERROR))
         connect_retries = kwargs.get('conn_retries', 0)
 
-        self.timeout = timeout if timeout is not None else 60.0
+        # [niyelchu]: fix for debug purposes only, increase rpc.py timeout
+        self.timeout = timeout if timeout is not None else 60000.0
         self._request_id = 0
         self._recv_buf = ""
         self._reqs = []

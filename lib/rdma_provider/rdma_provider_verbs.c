@@ -27,7 +27,9 @@ spdk_rdma_provider_qp_create(struct rdma_cm_id *cm_id,
 		.recv_cq = qp_attr->recv_cq,
 		.srq = qp_attr->srq,
 		.cap = qp_attr->cap,
-		.qp_type = IBV_QPT_RC
+		.qp_type = IBV_QPT_RC,
+		// [niyelchu]: fix needed for rdma_connect, libconsumer expects this flag to be set
+		.sq_sig_all = true
 	};
 
 	if (qp_attr->domain_transfer) {

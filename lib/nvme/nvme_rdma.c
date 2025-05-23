@@ -608,13 +608,18 @@ nvme_rdma_process_event_poll(struct nvme_rdma_qpair *rqpair)
 	assert(rctrlr != NULL);
 
 	if (!rqpair->evt && spdk_get_ticks() < rqpair->evt_timeout_ticks) {
+		printf("**** before nvme_rdma_poll_events\n");
 		rc = nvme_rdma_poll_events(rctrlr);
+		printf("**** return value of nvme_rdma_poll_events %d\n", rc);
 		if (rc == -EAGAIN || rc == -EWOULDBLOCK) {
 			return rc;
 		}
 	}
 
+	printf("**** before null check\n");
+
 	if (rqpair->evt == NULL) {
+		printf("**** rqpair->evt is NULL\n");
 		rc = -EADDRNOTAVAIL;
 		goto exit;
 	}
@@ -745,8 +750,12 @@ nvme_rdma_qpair_init(struct nvme_rdma_qpair *rqpair)
 	} else {
 		attr.cap.max_recv_wr = rqpair->num_entries; /* RECV operations */
 	}
-	attr.cap.max_send_sge	= spdk_min(NVME_RDMA_DEFAULT_TX_SGE, dev_attr.max_sge);
-	attr.cap.max_recv_sge	= spdk_min(NVME_RDMA_DEFAULT_RX_SGE, dev_attr.max_sge);
+	// [niyelchu]: fix needed for rdma_connect, libconsumer expects these values to be non-zero
+
+	//attr.cap.max_send_sge	= spdk_min(NVME_RDMA_DEFAULT_TX_SGE, dev_attr.max_sge);
+	//attr.cap.max_recv_sge	= spdk_min(NVME_RDMA_DEFAULT_RX_SGE, dev_attr.max_sge);
+	attr.cap.max_send_sge	= NVME_RDMA_DEFAULT_TX_SGE;
+	attr.cap.max_recv_sge	= NVME_RDMA_DEFAULT_RX_SGE;
 	attr.domain_transfer	= spdk_rdma_provider_accel_sequence_supported() ?
 				  nvme_rdma_memory_domain_transfer_data : NULL;
 
@@ -1008,10 +1017,14 @@ static int nvme_rdma_connect(struct nvme_rdma_qpair *rqpair);
 static int
 nvme_rdma_route_resolved(struct nvme_rdma_qpair *rqpair, int ret)
 {
+	printf("**** in nvme_rdma_route_resolved\n");
 	if (ret) {
+		printf("**** erorr in nvme_rdma_route_resolved\n");
 		SPDK_ERRLOG("RDMA route resolution error\n");
 		return -1;
 	}
+
+	printf("**** NO erorr in nvme_rdma_route_resolved\n");
 
 	ret = nvme_rdma_qpair_init(rqpair);
 	if (ret < 0) {
@@ -1019,16 +1032,23 @@ nvme_rdma_route_resolved(struct nvme_rdma_qpair *rqpair, int ret)
 		return -1;
 	}
 
+	printf("**** after nvme_rdma_qpair_init\n");
+
 	return nvme_rdma_connect(rqpair);
 }
 
 static int
 nvme_rdma_addr_resolved(struct nvme_rdma_qpair *rqpair, int ret)
 {
+	printf("***** in nvme_rdma_addr_resolved\n");
 	if (ret) {
+		printf("***** error in nvme_rdma_addr_resolved\n");
+		printf("In function %s at line %d\n", __func__, __LINE__);
 		SPDK_ERRLOG("RDMA address resolution error\n");
 		return -1;
 	}
+
+	printf("***** NO ERROR in nvme_rdma_addr_resolved\n");
 
 	if (rqpair->qpair.ctrlr->opts.transport_ack_timeout != SPDK_NVME_TRANSPORT_ACK_TIMEOUT_DISABLED) {
 #ifdef SPDK_CONFIG_RDMA_SET_ACK_TIMEOUT
@@ -1056,11 +1076,15 @@ nvme_rdma_addr_resolved(struct nvme_rdma_qpair *rqpair, int ret)
 #endif
 	}
 
+	printf("***** before rdma_resolve_route\n");
+
 	ret = rdma_resolve_route(rqpair->cm_id, NVME_RDMA_TIME_OUT_IN_MS);
 	if (ret) {
 		SPDK_ERRLOG("rdma_resolve_route\n");
 		return ret;
 	}
+
+	printf("***** after rdma_resolve_route\n");
 
 	return nvme_rdma_process_event_start(rqpair, RDMA_CM_EVENT_ROUTE_RESOLVED,
 					     nvme_rdma_route_resolved);
@@ -1074,18 +1098,24 @@ nvme_rdma_resolve_addr(struct nvme_rdma_qpair *rqpair,
 	int ret;
 
 	if (src_addr) {
-		int reuse = 1;
+		//int reuse = 1;
 
-		ret = rdma_set_option(rqpair->cm_id, RDMA_OPTION_ID, RDMA_OPTION_ID_REUSEADDR,
-				      &reuse, sizeof(reuse));
-		if (ret) {
-			SPDK_NOTICELOG("Can't apply RDMA_OPTION_ID_REUSEADDR %d, ret %d\n",
-				       reuse, ret);
+		printf("**** before rdma_set_option\n");
+
+		//ret = rdma_set_option(rqpair->cm_id, RDMA_OPTION_ID, RDMA_OPTION_ID_REUSEADDR,
+		//		      &reuse, sizeof(reuse));
+		//if (ret) {
+		//	SPDK_NOTICELOG("Can't apply RDMA_OPTION_ID_REUSEADDR %d, ret %d\n",
+		//		       reuse, ret);
 			/* It is likely that rdma_resolve_addr() returns -EADDRINUSE, but
 			 * we may missing something. We rely on rdma_resolve_addr().
 			 */
-		}
+		//}
+
+		printf("**** after rdma_set_option\n");
 	}
+
+	printf("**** before rdma_resolve_addr\n");
 
 	ret = rdma_resolve_addr(rqpair->cm_id, src_addr, dst_addr,
 				NVME_RDMA_TIME_OUT_IN_MS);
@@ -1093,6 +1123,8 @@ nvme_rdma_resolve_addr(struct nvme_rdma_qpair *rqpair,
 		SPDK_ERRLOG("rdma_resolve_addr, %d\n", errno);
 		return ret;
 	}
+
+	printf("**** after rdma_resolve_addr\n");
 
 	return nvme_rdma_process_event_start(rqpair, RDMA_CM_EVENT_ADDR_RESOLVED,
 					     nvme_rdma_addr_resolved);
@@ -1171,7 +1203,10 @@ nvme_rdma_connect(struct nvme_rdma_qpair *rqpair)
 		return ret;
 	}
 
-	param.responder_resources = attr.max_qp_rd_atom;
+	// [niyelchu]: fix needed for rdma_connect
+	param.responder_resources = 1;
+	//param.responder_resources = attr.max_qp_rd_atom;
+	printf("**** param.responder_resources %d\n", param.responder_resources);
 
 	ctrlr = rqpair->qpair.ctrlr;
 	if (!ctrlr) {
@@ -1267,6 +1302,8 @@ nvme_rdma_ctrlr_connect_qpair(struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_qp
 		return -1;
 	}
 
+	printf("***** before nvme_rdma_resolve_addr\n");
+
 	rc = nvme_rdma_resolve_addr(rqpair,
 				    src_addr_specified ? (struct sockaddr *)&src_addr : NULL,
 				    (struct sockaddr *)&dst_addr);
@@ -1274,6 +1311,8 @@ nvme_rdma_ctrlr_connect_qpair(struct spdk_nvme_ctrlr *ctrlr, struct spdk_nvme_qp
 		SPDK_ERRLOG("nvme_rdma_resolve_addr() failed\n");
 		return -1;
 	}
+
+	printf("***** after nvme_rdma_resolve_addr\n");
 
 	rqpair->state = NVME_RDMA_QPAIR_STATE_INITIALIZING;
 
@@ -2387,6 +2426,12 @@ nvme_rdma_ctrlr_construct(const struct spdk_nvme_transport_id *trid,
 		rctrlr->ctrlr.opts.transport_ack_timeout = NVME_RDMA_CTRLR_MAX_TRANSPORT_ACK_TIMEOUT;
 	}
 
+	rc = rdma_lib_init(0x200000, 0x2000000);
+	if (rc) {
+		printf("***** rdma_lib_init failing ********\n");
+		spdk_free(rctrlr);
+		return NULL;
+	}
 	contexts = rdma_get_devices(&num_devices);
 	if (contexts == NULL) {
 		SPDK_ERRLOG("rdma_get_devices() failed: %s (%d)\n", spdk_strerror(errno), errno);
@@ -2398,6 +2443,7 @@ nvme_rdma_ctrlr_construct(const struct spdk_nvme_transport_id *trid,
 	rctrlr->max_sge = NVME_RDMA_MAX_SGL_DESCRIPTORS;
 
 	while (contexts[i] != NULL) {
+		printf("In nvme_rdma_ctrlr_construct, rdma_get_devices is successful \n");
 		rc = ibv_query_device(contexts[i], &dev_attr);
 		if (rc < 0) {
 			SPDK_ERRLOG("Failed to query RDMA device attributes.\n");
@@ -2409,18 +2455,28 @@ nvme_rdma_ctrlr_construct(const struct spdk_nvme_transport_id *trid,
 		i++;
 	}
 
+	printf("In nvme_rdma_ctrlr_construct, ibv_query_device is successful \n");
+
 	rdma_free_devices(contexts);
+
+	printf("In nvme_rdma_ctrlr_construct, before nvme_ctrlr_construct\n");
 
 	rc = nvme_ctrlr_construct(&rctrlr->ctrlr);
 	if (rc != 0) {
+		printf("In nvme_rdma_ctrlr_construct, nvme_ctrlr_construct failure\n");
 		spdk_free(rctrlr);
 		return NULL;
 	}
 
+	printf("In nvme_rdma_ctrlr_construct, after nvme_ctrlr_construct\n");
+
 	STAILQ_INIT(&rctrlr->pending_cm_events);
 	STAILQ_INIT(&rctrlr->free_cm_events);
+
 	rctrlr->cm_events = spdk_zmalloc(NVME_RDMA_NUM_CM_EVENTS * sizeof(*rctrlr->cm_events), 0, NULL,
 					 SPDK_ENV_NUMA_ID_ANY, SPDK_MALLOC_DMA);
+
+
 	if (rctrlr->cm_events == NULL) {
 		SPDK_ERRLOG("unable to allocate buffers to hold CM events.\n");
 		goto destruct_ctrlr;
@@ -2430,17 +2486,23 @@ nvme_rdma_ctrlr_construct(const struct spdk_nvme_transport_id *trid,
 		STAILQ_INSERT_TAIL(&rctrlr->free_cm_events, &rctrlr->cm_events[i], link);
 	}
 
+	printf("In nvme_rdma_ctrlr_construct, before rdma_create_event_channel\n");
+
 	rctrlr->cm_channel = rdma_create_event_channel();
 	if (rctrlr->cm_channel == NULL) {
 		SPDK_ERRLOG("rdma_create_event_channel() failed\n");
 		goto destruct_ctrlr;
 	}
 
+	printf("In nvme_rdma_ctrlr_construct, after rdma_create_event_channel\n");
+
 	flag = fcntl(rctrlr->cm_channel->fd, F_GETFL);
 	if (fcntl(rctrlr->cm_channel->fd, F_SETFL, flag | O_NONBLOCK) < 0) {
 		SPDK_ERRLOG("Cannot set event channel to non blocking\n");
 		goto destruct_ctrlr;
 	}
+
+	printf("In nvme_rdma_ctrlr_construct, before nvme_rdma_ctrlr_create_qpair\n");
 
 	rctrlr->ctrlr.adminq = nvme_rdma_ctrlr_create_qpair(&rctrlr->ctrlr, 0,
 			       rctrlr->ctrlr.opts.admin_queue_size, 0,
@@ -2449,16 +2511,23 @@ nvme_rdma_ctrlr_construct(const struct spdk_nvme_transport_id *trid,
 		SPDK_ERRLOG("failed to create admin qpair\n");
 		goto destruct_ctrlr;
 	}
+
+	printf("In nvme_rdma_ctrlr_construct, after nvme_rdma_ctrlr_create_qpair\n");
 	if (spdk_rdma_provider_accel_sequence_supported()) {
 		rctrlr->ctrlr.flags |= SPDK_NVME_CTRLR_ACCEL_SEQUENCE_SUPPORTED;
 	}
+
+	printf("In nvme_rdma_ctrlr_construct, before nvme_ctrlr_add_process\n");
 
 	if (nvme_ctrlr_add_process(&rctrlr->ctrlr, 0) != 0) {
 		SPDK_ERRLOG("nvme_ctrlr_add_process() failed\n");
 		goto destruct_ctrlr;
 	}
 
+	printf("In nvme_rdma_ctrlr_construct, after nvme_ctrlr_add_process\n");
+
 	SPDK_DEBUGLOG(nvme, "successfully initialized the nvmf ctrlr\n");
+	printf("**** successfully initialized the nvmf ctrlr\n");
 	return &rctrlr->ctrlr;
 
 destruct_ctrlr:

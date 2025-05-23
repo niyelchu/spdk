@@ -1691,6 +1691,7 @@ nvme_parse_addr(struct sockaddr_storage *sa, int family, const char *addr, const
 {
 	struct addrinfo *res;
 	struct addrinfo hints;
+	struct sockaddr_in *sin;
 	int ret;
 
 	memset(&hints, 0, sizeof(hints));
@@ -1711,6 +1712,13 @@ nvme_parse_addr(struct sockaddr_storage *sa, int family, const char *addr, const
 		SPDK_ERRLOG("getaddrinfo failed: %s (%d)\n", gai_strerror(ret), ret);
 		return -(abs(ret));
 	}
+
+	// [niyelchu]: fix needed for rdma_connect, libconsumer expects port in host byte order
+
+	sin = (struct sockaddr_in *)res->ai_addr;
+	printf("Port before in network order: %d\n", sin->sin_port);
+	sin->sin_port = ntohs(sin->sin_port);
+	printf("Port after in host order: %d\n", sin->sin_port);
 
 	if (res->ai_addrlen > sizeof(*sa)) {
 		SPDK_ERRLOG("getaddrinfo() ai_addrlen %zu too large\n", (size_t)res->ai_addrlen);
