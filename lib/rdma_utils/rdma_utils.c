@@ -388,12 +388,13 @@ spdk_rdma_utils_get_pd(struct ibv_context *context)
 	}
 
 	TAILQ_FOREACH(dev, &g_dev_list, tailq) {
-		if (dev->context == context && !dev->removed) {
+		// [niyelchu]: hack for rdma_connect
+		//if (dev->context == context && !dev->removed) {
 			dev->ref++;
 			pthread_mutex_unlock(&g_dev_mutex);
 
 			return dev->pd;
-		}
+		//}
 	}
 
 	pthread_mutex_unlock(&g_dev_mutex);
